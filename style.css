@@ -1,0 +1,3 @@
+*{margin:0px;padding:0px;box-sizing: content-box;}
+#mycanvas{box-sizing: content-box;}
+.container{position: relative;width: 400px;height:600px;margin:50px auto;border: 1px solid;}
