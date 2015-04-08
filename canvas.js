@@ -4,58 +4,51 @@
 var Tetris = function () {
     /*Game对象，负责canvas画布相关的初始化，操作等*/
     function Game() {
-        var interval;
+        this.interval;
         this.self = this;
-        this.downonce = 0;
         this.board = new Board();
         Keyboard.call(this);
         this.start = function () {
 
-            interval = setInterval(this.loop, 1000 / this.board.FPS, this.self);
+            this.interval = setInterval(this.loop, 1000 / this.board.FPS, this.self);
 
         };
         this.loop = function (that) {
-
-            if (that.downonce === 0) {
-                /*that.board.shape.clearShap(that.board.canvas.context2d);*/
-                that.board.clearBoard();
-                that.board.drawBoard();
-                that.board.shape.refresh();
-                that.board.shape.draw(that.board.canvas.context2d);
-                that.downonce = 1;
-            }
-            else if (that.downonce === 1) {
-                /*that.board.shape.clearShap(that.board.canvas.context2d);*/
-                that.board.clearBoard();
-                that.board.drawBoard();
-                that.board.shape.draw(that.board.canvas.context2d);
-                if(that.board.isHit()){
+            that.board.clearBoard();
+            that.board.drawBoard();
+            that.board.shape.draw(that.board.canvas.context2d);
+                if(that.board.isHit(0,-1)){
                     that.downonce=0;
                     that.board.endDown();
+                    that.board.clearLines();
+                    that.endGame();
                 }
                 else{
                     that.board.shape.down();
                 }
 
 
-            }
+
 
         };
-        /*        this.gamelogic = function (context, cw, ch) {
+        this.endGame=function(){
+            var target = [];
+            var rows = this.board.shape.type.length;
+            var cols = this.board.shape.type[0].length;
+            for(var y=0;y<rows;y++){
+                for(var x=0;x<cols;x++){
+                    target.push([this.board.shape.y/this.board.blockSize+y,this.board.shape.x/this.board.blockSize+x]);
+                }
+            }
+            for(y=0;y<target.length;y++){
+                if(this.board.grid[target[y][0]][target[y][1]]!==0){
+                    clearInterval(this.interval);
+                    alert("Game Over");
+                    break;
+                }
+            }
+        };
 
-         var objA = new Shape();
-         context = this.context2D;
-         objA.draw(context);
-         setInterval(function () {
-         x1 = objA.x;
-         y1 = objA.y + 2;
-         w1 = objA.width;
-         h1 = objA.height;
-         objA.update(x1, y1, w1, h1);
-         context.clearRect(0, 0, cw, ch);
-         objA.draw(context);
-         }, 1000 / this.FPS);
-         };*/
         this.start();
 
     };
@@ -107,6 +100,8 @@ var Tetris = function () {
                     if(this.grid[y][x]!==0){
                         this.canvas.context2d.fillStyle = this.shape.colors[this.grid[y][x]-1];
                         this.canvas.context2d.fillRect( x * this.blockSize, y * this.blockSize, this.blockSize, this.blockSize)
+                        this.canvas.context2d.strokeStyle = "#ffffff";
+                        this.canvas.context2d.strokeRect( x * this.blockSize, y * this.blockSize, this.blockSize, this.blockSize)
                     }
                 }
             }
@@ -114,18 +109,25 @@ var Tetris = function () {
         clearBoard: function () {
             this.canvas.context2d.clearRect(0, 0, this.cols * this.blockSize, this.rows * this.blockSize);
         },
-        isHit: function () {
+        isHit: function (h,v) {
             var blockSize = this.blockSize;
-            function nextBlock(type, x, y) {
+            var next;
+            //获取当前下落形状的碰撞判定坐标
+            function downBlock(type, x, y) {
                 var target = [];
                 var rows = type.length;
                 var cols = type[0].length;
 
 
                 for (var j = 0; j < cols; j++) {
-                    if (type[rows - 1][j] === 0) {
+                    //从当前形状的最后一行开始判定，如果是0,则是当前0的位置或0上面的位置
+                    if (type[rows - 1][j] === 0 && type[rows - 2][j] !== 0 ) {
                         target[j] = [y / blockSize + rows - 1,j + x / blockSize ];
                     }
+                    else if (type[rows - 1][j] === 0 && type[rows - 2][j] === 0 ) {
+                        target[j] = [y / blockSize + rows - 2,j + x / blockSize ];
+                    }
+                    //如果是1，则是当前位置下面的位置
                     else if (type[rows - 1][j] === 1) {
                         target[j] = [y / blockSize + rows,j + x / blockSize ];
                     }
@@ -133,17 +135,95 @@ var Tetris = function () {
                 return target;
 
             }
+            function leftBlock(type, x, y) {
+                var target = [];
+                var rows = type.length;
+                var cols = type[0].length;
 
-            var next = nextBlock(this.shape.type, this.shape.x, this.shape.y)
-            for (var i = 0; i < next.length; i++) {
-                if(next[i][0]>this.rows-1){
-                    return true
+
+                for (var j = 0; j < rows; j++) {
+                    //从当前形状的第一列开始判定，如果是0,则是当前0的位置或0右边的位置
+                    if (type[j][0] === 0 && type[j][1] !== 0 ) {
+                        target[j] = [j+y/blockSize,x/blockSize];
+                    }
+                    else if (type[j][0] === 0 && type[j][1] === 0 ) {
+                        target[j] = [j+y/blockSize,x/blockSize+1 ];
+                    }
+                    //如果是1，则是当前位置左面的位置
+                    else if (type[j][0] === 1) {
+                        target[j] = [j+y/blockSize,x/blockSize-1 ];
+                    }
                 }
-                if (this.grid[next[i][0]][next[i][1]] !== 0) {
-                    return true
-                }
+                return target;
+
             }
-            return false
+            function rightBlock(type, x, y) {
+                var target = [];
+                var rows = type.length;
+                var cols = type[0].length;
+
+
+                for (var j = 0; j < rows; j++) {
+                    //从当前形状的最后一列开始判定，如果是0,则是当前0的位置或0左边的位置
+                    if (type[j][cols-1] === 0 && type[j][cols-2] !== 0 ) {
+                        target[j] = [j+y/blockSize,x/blockSize+cols-1];
+                    }
+                    else if (type[j][cols-1] === 0 && type[j][cols-2] === 0 ) {
+                        target[j] = [j+y/blockSize,x/blockSize+cols-2 ];
+                    }
+                    //如果是1，则是当前位置右面的位置
+                    else if (type[j][cols-1] === 1) {
+                        target[j] = [j+y/blockSize,x/blockSize+cols ];
+                    }
+                }
+                return target;
+
+            }
+            if(v===-1){
+                next = downBlock(this.shape.type, this.shape.x, this.shape.y)
+
+                for (var i = 0; i < next.length; i++) {
+                    //是否碰到底部
+                    if(next[i][0]>this.rows-1){
+                        return true
+                    }
+                    //是否碰到已落下的形状上
+                    if (this.grid[next[i][0]][next[i][1]] !== 0) {
+                        return true
+                    }
+                }
+                return false
+            }
+            if(h===-1){
+                next = leftBlock(this.shape.type, this.shape.x, this.shape.y)
+
+                for (var i = 0; i < next.length; i++) {
+                    //是否碰到左侧墙
+                    if(next[i][1]<0){
+                        return true
+                    }
+                    //是否碰到已落下的形状上
+                    if (this.grid[next[i][0]][next[i][1]] !== 0) {
+                        return true
+                    }
+                }
+                return false
+            }
+            if(h===1){
+                next = rightBlock(this.shape.type, this.shape.x, this.shape.y)
+
+                for (var i = 0; i < next.length; i++) {
+                    //是否碰到右侧墙
+                    if(next[i][1]>this.cols-1){
+                        return true
+                    }
+                    //是否碰到已落下的形状上
+                    if (this.grid[next[i][0]][next[i][1]] !== 0) {
+                        return true
+                    }
+                }
+                return false
+            }
         },
         endDown:function(){
             var blockSize = this.blockSize;
@@ -174,6 +254,7 @@ var Tetris = function () {
 
                 }
             }
+            this.shape.refresh();
 
         },
         rotate:function(){
@@ -204,17 +285,19 @@ var Tetris = function () {
         },
         validMove:function(h,v){
             if(h===-1){
-                if((this.shape.x-this.blockSize)<0){
+                if(this.isHit(h,v)){
                     return false;
                 }
+
             }
             else if(h===1){
-                if((this.shape.x+this.shape.type[0].length*this.blockSize+this.blockSize)>this.blockSize*this.cols){
+                if(this.isHit(h,v)){
                     return false;
                 }
+
             }
             else if(v===-1){
-                if(this.isHit()){
+                if(this.isHit(h,v)){
                     return false;
                 }
             }
@@ -242,6 +325,35 @@ var Tetris = function () {
             return true;
         },
         clearLines:function(){
+            var target=[];
+            var full,tlength;
+            for(var i=this.rows-1;i>=0;i--){
+                full=1;
+                for(var j=0;j<this.cols;j++){
+                    if(this.grid[i][j]===0){
+                        full=0;
+                        break;
+                    }
+                }
+                if(full===1){
+                    tlength=target.push(i);
+                }
+            }
+
+            if(tlength===0){
+                return false;
+            }
+            else if(tlength>0){
+                for(i=tlength-1;i>=0;i--){
+                    for(var y=target[i];y>0;y--){
+                        for(var x=0;x<this.cols;x++){
+                            this.grid[y][x]=this.grid[y-1][x];
+                            this.grid[y-1][x]=0;
+                        }
+                    }
+                }
+            }
+
 
         }
     }
@@ -290,17 +402,21 @@ var Tetris = function () {
         constructor: Shape,
         draw: function (context) {
 
-            context.fillStyle = this.color;
+
             for (var y = 0; y < this.type.length; y++) {
                 for (var x = 0; x < this.type[0].length; x++) {
                     if (this.type[y][x] === 1) {
+                        context.fillStyle = this.color;
                         context.fillRect(this.x + x * this.board.blockSize, this.y + y * this.board.blockSize, this.board.blockSize, this.board.blockSize)
+                        context.strokeStyle = "#ffffff";
+                        context.strokeRect(this.x + x * this.board.blockSize, this.y + y * this.board.blockSize, this.board.blockSize, this.board.blockSize)
+
                     }
                 }
             }
         },
         refresh: function () {
-            this.x = (this.board.cols / 2 - 1) * this.board.blockSize;
+            this.x = (this.board.cols / 2 - 2) * this.board.blockSize;
             this.y = 0;
             this.typenum = Math.floor(Math.random() * (this.types.length));
             this.type = this.types[this.typenum];
@@ -329,25 +445,30 @@ var Tetris = function () {
                 switch (key){
                     case "top":
                         if(self.board.validMove(0,1)){
+                            clearInterval(self.interval);
                             self.board.rotate();
                             refresh=1;
                         }
                         break;
                     case "right":
                         if(self.board.validMove(1,0)){
+                            clearInterval(self.interval);
                             self.board.hrmove();
                             refresh=1;
                         }
                         break;
                     case "left":
                         if(self.board.validMove(-1,0)){
+                            clearInterval(self.interval);
                             self.board.hlmove();
                             refresh=1;
                         }
                         break;
                     case "down":
                         if(self.board.validMove(0,-1)) {
+                            clearInterval(self.interval);
                             self.board.dmove();
+                            refresh=1;
                         }
                         break;
                     default :
@@ -357,6 +478,7 @@ var Tetris = function () {
                     self.board.clearBoard();
                     self.board.drawBoard();
                     self.board.shape.draw(self.board.canvas.context2d);
+                    self.interval = setInterval(self.loop, 1000 / self.board.FPS, self);
                 }
             }
         }
@@ -366,6 +488,7 @@ var Tetris = function () {
         this.points = 0;
 
     };
+
 
     return new Game();
 
