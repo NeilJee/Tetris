@@ -1,3 +1,6 @@
 *{margin:0px;padding:0px;box-sizing: content-box;}
 #mycanvas{box-sizing: content-box;}
-.container{position: relative;width: 400px;height:600px;margin:50px auto;border: 1px solid;}
+.container{position: relative;width: 600px;height:600px;margin:50px auto;}
+.gameboard{border: 1px solid;width: 400px;float: left;}
+.pointsboard{float: left;width:150px;border: 1px solid;text-align: center;margin-left: 10px;background-color:azure;}
+.pointsboard span{font-size: 20px;}

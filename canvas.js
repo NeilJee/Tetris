@@ -71,7 +71,7 @@ var Tetris = function () {
 
         this.cols = 20;
         this.rows = 30;
-
+        this.pointBoard=new Points();
         this.blockSize = 20;
         this.grid = [];
         this.FPS = 5;
@@ -352,7 +352,10 @@ var Tetris = function () {
                         }
                     }
                 }
+                this.pointBoard.add(tlength);
             }
+
+
 
 
         }
@@ -391,7 +394,7 @@ var Tetris = function () {
         ];
         this.board = board;
         this.colors = ["#4FC5C7", "#97EC71", "#DBF977", "#DE9DD6", "#FA6E86", "#8A7F7D", "#F1B6AE"];
-        this.x = (board.cols / 2 - 2) * board.blockSize;
+        this.x = (board.cols / 2 - 1) * board.blockSize;
         this.y = 0;
         this.typenum = Math.floor(Math.random() * (this.types.length));
         this.type = this.types[this.typenum];
@@ -416,7 +419,7 @@ var Tetris = function () {
             }
         },
         refresh: function () {
-            this.x = (this.board.cols / 2 - 2) * this.board.blockSize;
+            this.x = (this.board.cols / 2 - 1) * this.board.blockSize;
             this.y = 0;
             this.typenum = Math.floor(Math.random() * (this.types.length));
             this.type = this.types[this.typenum];
@@ -485,8 +488,18 @@ var Tetris = function () {
         this.eventHandles();
     }
     function Points() {
+        this.board=document.getElementsByClassName("points");
         this.points = 0;
+        this.unit=10;
 
+
+    };
+    Points.prototype={
+        constructor:Points,
+        add:function(multiple){
+            this.points=this.unit*multiple+this.points;
+            this.board[0].innerHTML=this.points;
+        }
     };
 
 
